@@ -1,0 +1,14 @@
+run: ball-balance-ppo
+seed: 42
+agent: ppo
+env: mjc-ball
+train:
+  max_epoch: 1000
+  max_step: 2000
+  actor_lr: 3e-4
+  critic_lr: 1e-3
+  gamma: 0.99
+  lam: 0.95
+  clip_ratio: 0.2
+  target_kl: 0.01
+  train_iter: 80
