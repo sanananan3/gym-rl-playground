@@ -9,22 +9,22 @@
     <joint name="base_z_hinge_joint" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14 3.14" damping="1"/>        <!--damping="10000"-->
 
     <body name="summit_xl_front_right_wheel_link" pos="0.2225 -0.2045 0.127">
-    <inertial pos="0 0 0" quat="0.707107 0 0 0.707107" mass="6.5" diaginertia="0.0524193 0.0303095 0.0303095"/>
+    <inertial pos="0 0 0" quat="0.707107 0 0 0.707107" mass="300000" diaginertia="0.0524193 0.0303095 0.0303095"/>
     <!--joint name="summit_xl_front_right_wheel_joint" pos="0 0 0" axis="0 1 0"/-->
     <geom size="0.127 0.0435" quat="0.707107 0.707107 0 0" type="cylinder" rgba="0.2 0.2 0.2 1"/>
     </body>
     <body name="summit_xl_front_left_wheel_link" pos="0.2225 0.2045 0.127">
-      <inertial pos="0 0 0" quat="0.707107 0 0 0.707107" mass="6.5" diaginertia="0.0524193 0.0303095 0.0303095"/>
+      <inertial pos="0 0 0" quat="0.707107 0 0 0.707107" mass="300000" diaginertia="0.0524193 0.0303095 0.0303095"/>
       <!--joint name="summit_xl_front_left_wheel_joint" pos="0 0 0" axis="0 1 0"/-->
       <geom size="0.127 0.0435" quat="0.707107 0.707107 0 0" type="cylinder" rgba="0.2 0.2 0.2 1"/>
     </body>
     <body name="summit_xl_back_left_wheel_link" pos="-0.2225 0.2045 0.127">
-      <inertial pos="0 0 0" quat="0.707107 0 0 0.707107" mass="6.5" diaginertia="0.0524193 0.0303095 0.0303095"/>
+      <inertial pos="0 0 0" quat="0.707107 0 0 0.707107" mass="300000" diaginertia="0.0524193 0.0303095 0.0303095"/>
       <!--joint name="summit_xl_back_left_wheel_joint" pos="0 0 0" axis="0 1 0"/-->
       <geom size="0.127 0.0435" quat="0.707107 0.707107 0 0" type="cylinder" rgba="0.2 0.2 0.2 1"/>
     </body>
     <body name="summit_xl_back_right_wheel_link" pos="-0.2225 -0.2045 0.127">
-      <inertial pos="0 0 0" quat="0.707107 0 0 0.707107" mass="6.5" diaginertia="0.0524193 0.0303095 0.0303095"/>
+      <inertial pos="0 0 0" quat="0.707107 0 0 0.707107" mass="300000" diaginertia="0.0524193 0.0303095 0.0303095"/>
       <!--joint name="summit_xl_back_right_wheel_joint" pos="0 0 0" axis="0 1 0"/-->
       <geom size="0.127 0.0435" quat="0.707107 0.707107 0 0" type="cylinder" rgba="0.2 0.2 0.2 1"/>
     </body>

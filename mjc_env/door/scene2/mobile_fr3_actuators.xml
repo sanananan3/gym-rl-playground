@@ -13,9 +13,9 @@
 
   <actuator>
     <!-- BASE -->
-    <!-- <velocity ctrllimited="true" ctrlrange="-2.5 2.5" joint="base_x_slide_joint" kv="20000" name="base_x_slide_joint" user="1" gear="1 0 0 0 0 0"/>
+    <velocity ctrllimited="true" ctrlrange="-2.5 2.5" joint="base_x_slide_joint" kv="20000" name="base_x_slide_joint" user="1" gear="1 0 0 0 0 0"/>
     <velocity ctrllimited="true" ctrlrange="-2.5 2.5" joint="base_y_slide_joint" kv="20000" name="base_y_slide_joint" user="1" gear="1 0 0 0 0 0"/>
-    <velocity ctrllimited="true" ctrlrange="-2.5 2.5" joint="base_z_hinge_joint" kv="20000" name="base_z_hinge_joint" user="1" gear="1 0 0 0 0 0"/> -->
+    <velocity ctrllimited="true" ctrlrange="-2.5 2.5" joint="base_z_hinge_joint" kv="20000" name="base_z_hinge_joint" user="1" gear="1 0 0 0 0 0"/>
     <!-- Franka Arm -->
     <motor ctrllimited="true" ctrlrange="-87.0 87.0" joint="joint1" name="actuator1"/>
     <motor ctrllimited="true" ctrlrange="-87.0 87.0" joint="joint2" name="actuator2"/>
@@ -24,6 +24,8 @@
     <motor ctrllimited="true" ctrlrange="-12.0 12.0" joint="joint5" name="actuator5"/>
     <motor ctrllimited="true" ctrlrange="-12.0 12.0" joint="joint6" name="actuator6"/>
     <motor ctrllimited="true" ctrlrange="-12.0 12.0" joint="joint7" name="actuator7"/>
+
+    <motor ctrllimited="true" ctrlrange="-255.0 255.0" tendon="split" name="split"/>
   </actuator>
 
  </mujocoinclude>

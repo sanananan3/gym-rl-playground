@@ -6,7 +6,6 @@ from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 import mujoco
-from scipy.spatial.transform import Rotation as R
 
 """
 강화학습의 출력이 End Effector의 pose인 Inverse Dynamics 환경
@@ -55,7 +54,8 @@ class DoorOpenEnv(MujocoEnv, utils.EzPickle):
         """
         a: desired pose of the end effector
         """
-        self.data.mocap_pos[0] += a[:3] / 100
+        self.data.mocap_pos[0] += a[:3]
+        self.data.mocap_quat[0] = a[3:]
         mujoco.mj_step(self.model, self.data, self.frame_skip)
         self.step_number += 1
 
@@ -99,7 +99,7 @@ class DoorOpenEnv(MujocoEnv, utils.EzPickle):
         
         rew = success * 10 + rew_dist - pen_qvel * 0.001 - pen_collision * 10
         
-        done = (self.success_duration > 20) | is_collided
+        done = (self.success_duration > 20)
         if success:
             self.success_duration += 1
         else:
