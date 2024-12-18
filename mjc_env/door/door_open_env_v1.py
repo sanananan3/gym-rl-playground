@@ -6,9 +6,11 @@ from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 import mujoco
+from scipy.spatial.transform import Rotation as R
+from mjc_env.door.util import rotate_quaternion, get_quaternion_difference
 
 """
-강화학습의 출력이 End Effector의 pose인 Inverse Dynamics 환경
+강화학습의 출력이 End Effector의 pose의 변화량인 Inverse Dynamics 환경
 """
 GEOM = 5
 
@@ -23,7 +25,7 @@ class DoorOpenEnv(MujocoEnv, utils.EzPickle):
     def __init__(self, episode_len=500, **kwargs):
         utils.EzPickle.__init__(self, **kwargs)
 
-        observation_space = Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32)
+        observation_space = Box(low=-np.inf, high=np.inf, shape=(14,), dtype=np.float32)
         self.idv_action_space = Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float32) # end effector pose 
                                                                                             # (x, y, z, qw, qx, qy, qz)
 
@@ -79,16 +81,29 @@ class DoorOpenEnv(MujocoEnv, utils.EzPickle):
         return self._get_obs()
 
     def _get_obs(self):
+        current_ee_pos = self.data.body("hand").xpos
+        current_ee_quat = R.from_matrix(self.data.body("hand").xmat.reshape(3, 3)).as_quat()
+        
+        target_pos = self.data.body("latch_axis").xpos
+        target_pos[1] -= 0.05                                           # 손잡이 잡는 위치 조정
+        target_quat = R.from_matrix(self.data.body("latch_axis").xmat.reshape(3, 3)).as_quat()
+        target_quat = rotate_quaternion(target_quat, [0, 1, 0], 180)    # 손잡이 잡는 z 방향 조정
+        
         obs = np.concatenate([
-                            self.data.body("hand").xpos,     # (3,)
-                            self.data.body("latch").xpos,    # (3,)
+                            current_ee_pos,     # (3,)
+                            current_ee_quat,    # (4,)
+                            target_pos,         # (3,)
+                            target_quat         # (4,)                            
                         ])
         return obs
     
     def _get_rew_done(self, obs):
         # EE와 목표 지점 사이의 거리
-        dist = np.linalg.norm(self.data.body("hand").xpos - self.data.body("latch").xpos)
+        dist = np.linalg.norm(obs[:3] - obs[7:10])
         rew_dist = (1 / (1 + dist))
+        # EE와 목표 방향 사이의 각도
+        angle = get_quaternion_difference(obs[3:7], obs[10:])
+        rew_angle = (1 / (1 + angle))
         # 관절 속도 패널티
         pen_qvel = -abs(self.data.qvel[3:10]).sum()
         # 충돌 패널티
@@ -96,14 +111,10 @@ class DoorOpenEnv(MujocoEnv, utils.EzPickle):
         pen_collision = -1 if is_collided else 0
         
         success = dist < 0.1
-        
-        rew = success * 10 + rew_dist - pen_qvel * 0.001 - pen_collision * 10
-        
+        self.success_duration = self.success_duration + 1 if success else 0
+
+        rew = success * 10 + rew_dist + rew_angle - pen_qvel * 0.001 - pen_collision * 10
         done = (self.success_duration > 20)
-        if success:
-            self.success_duration += 1
-        else:
-            self.success_duration = 0
         
         return rew, done
     
