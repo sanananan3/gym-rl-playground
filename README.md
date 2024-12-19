@@ -34,6 +34,12 @@ gym-rl-playground/
 - Mujoco 2.1.0 (for mujoco custom environments)
 
 ## Usage
+
+You can install the necessary packages by running the following command:
+```sh
+pip install -r requirements.txt
+```
+
 ### Training an Algorithm
 To train a PPO on the Ball Balance environment:
 ```bash

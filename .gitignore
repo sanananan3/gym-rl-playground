@@ -4,3 +4,5 @@ outputs/
 *.pth
 *.ckpt
 wandb/
+.DS_Store
+MUJOCO_LOG*
