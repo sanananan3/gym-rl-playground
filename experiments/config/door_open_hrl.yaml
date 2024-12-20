@@ -1,0 +1,16 @@
+run: door-open-hrl
+seed: 42
+agent: ppo
+env: mjc-door-open
+train:
+  goal_dim: 6       # base's goal (3) + endeffector's goal (3)
+  act_mask_dim: 2   # discrete action mask between 2 choices (base only / base + endeffector)
+  max_epoch: 3000
+  max_step: 2000
+  actor_lr: 3e-4
+  critic_lr: 1e-3
+  gamma: 0.99
+  lam: 0.95
+  clip_ratio: 0.2
+  target_kl: 0.01
+  train_iter: 80

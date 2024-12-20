@@ -2,9 +2,9 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 from torch import Tensor
 from torch.distributions.normal import Normal
+from torch.distributions import Categorical
 import scipy
 import numpy as np
 import gymnasium as gym
@@ -12,10 +12,12 @@ import gymnasium as gym
 from tqdm import tqdm
 from experiments.util import Logger
 
+FINAL_GOAL = None
+
 def discount_cumsum(x, discount):
     return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]
 
-def log_prob_from_dist(dist: Normal, act: Tensor) -> Tensor:
+def log_prob_from_dist(dist, act):
     return dist.log_prob(act).sum(axis=-1)
 
 class Actor(nn.Module):
@@ -56,19 +58,72 @@ class Critic(nn.Module):
     def forward(self, obs: Tensor):
         return torch.squeeze(self.critic(obs), -1)
 
+class MetaActorCritic(nn.Module):
+    def __init__(self, obs_dim, goal_dim, act_mask_dim, rnn_hidden_dim=64):
+        super().__init__()
+
+        # Meta Actor
+        self.rnn = nn.GRU(obs_dim+goal_dim, rnn_hidden_dim, batch_first=True)
+        self.hidden = None
+
+        self.fc_subgoal = nn.Sequential(
+            nn.Linear(rnn_hidden_dim, goal_dim), nn.Tanh()          # continuous action space
+        )
+        self.log_std_subgoal = torch.nn.Parameter(torch.as_tensor(
+            -0.5 * np.ones(goal_dim, dtype=np.float32)
+        ))
+        self.fc_act_mask = nn.Sequential(
+            nn.Linear(rnn_hidden_dim, act_mask_dim), nn.Softmax(dim=-1)        # discrete action space
+        )
+
+        # Meta Critic
+        self.fc_critic = nn.Linear(rnn_hidden_dim, 1)
+        
+    def get_dist_subgoal(self, rnn_hidden):
+        subgoal = self.fc_subgoal(rnn_hidden)
+        std_subgoal = torch.exp(self.log_std_subgoal)
+        return Normal(subgoal, std_subgoal)
+    
+    def get_dist_act_mask(self, rnn_hidden):
+        act_mask = self.fc_act_mask(rnn_hidden)
+        return Categorical(act_mask)
+    
+    def forward(self, obs, goal):
+        with torch.no_grad():
+            # rnn_input: (batch, seq=1, rnn_hidden_dim)
+            rnn_input = torch.cat([obs, goal], dim=-1).unsqueeze(1)
+            rnn_output, self.hidden = self.rnn(rnn_input, self.hidden)
+
+            dist_subgoal = self.get_dist_subgoal(self.hidden)
+            subgoal = dist_subgoal.sample()
+            subgoal_log_prob = log_prob_from_dist(dist_subgoal, subgoal)
+
+            dist_act_mask = self.get_dist_act_mask(self.hidden)
+            act_mask = dist_act_mask.sample()
+            act_mask_log_prob = log_prob_from_dist(dist_act_mask, act_mask)
+
+            value = self.fc_critic(rnn_output.squeeze(1))
+        
+        return subgoal.numpy(), act_mask.item(), subgoal_log_prob.numpy(), act_mask_log_prob.numpy(), \
+                self.hidden.numpy(), value.numpy()
+    
+    def reset_hidden_state(self, batch_size=1):
+        self.hidden = torch.zeros(1, batch_size, self.rnn.hidden_size)
+
 class ActorCritic(nn.Module):
-    def __init__(self, obs_dim, act_dim):
+    def __init__(self, obs_dim, goal_dim, act_dim):
         super().__init__()
         
-        self.actor = Actor(obs_dim, act_dim)
-        self.critic = Critic(obs_dim)
+        self.actor = Actor(obs_dim+goal_dim, act_dim)
+        self.critic = Critic(obs_dim+goal_dim)
         
-    def forward(self, obs):
+    def forward(self, obs, goal):
         with torch.no_grad():
-            dist = self.actor.get_distribution(obs)
+            actor_input = torch.cat([obs, goal], dim=-1)
+            dist = self.actor.get_distribution(actor_input)
             action = dist.sample()
             log_prob = log_prob_from_dist(dist, action)
-            value = self.critic(obs)
+            value = self.critic(actor_input)
         
         return action.numpy(), log_prob.numpy(), value.numpy()
 
@@ -127,7 +182,6 @@ class Buffer:
         """
         epoch이 끝나서 이제 모델 업데이트하기 직전에 탐험 data 불러오기 위해 call되는 함수
         """
-        assert self.ptr == self.size
         self.ptr, self.path_start_idx = 0, 0
         
         # advantage normalization
@@ -147,7 +201,7 @@ class Buffer:
 class HierarchicalPPOAgent:
     def __init__(self, args, ckpt_path=None):        
         # initialize policy
-        self.meta_model = ActorCritic(args.obs_dim, args.goal_dim).apply(init_weights)
+        self.meta_model = MetaActorCritic(args.obs_dim, args.goal_dim, args.act_mask_dim).apply(init_weights)
         self.model = ActorCritic(args.obs_dim, args.act_dim).apply(init_weights)
         self.ckpt_path = ckpt_path
         if ckpt_path is not None:
@@ -155,8 +209,10 @@ class HierarchicalPPOAgent:
 
         # initialize buffer
         self.buf = Buffer(args.obs_dim, args.act_dim, args.max_step, args.gamma, args.lam)
+        self.meta_buf = Buffer(args.obs_dim, args.goal_dim, args.max_step, args.gamma, args.lam)
 
         # initialize optimizer
+        self.meta_optim = optim.Adam(self.meta_model.parameters(), lr=args.meta_lr)
         self.actor_optim = optim.Adam(self.model.actor.parameters(), lr=args.actor_lr)
         self.critic_optim = optim.Adam(self.model.critic.parameters(), lr=args.critic_lr)
         
@@ -166,10 +222,18 @@ class HierarchicalPPOAgent:
         self.max_step = args.max_step
         self.train_iter = args.train_iter
 
+        self.act_dim = args.act_dim
+
     def set_logger(self, log_dir, logger: Logger):
         self.log_dir = log_dir
         self.logger = logger
         
+    def compute_loss_meta(self, data):
+        obs, subgoal, adv, logp_old = data['obs'], data['act'], data['adv'], data['logp']
+
+        self.meta_model(obs, FINAL_GOAL)
+        # TODO: Implement meta loss
+
     def compute_loss_actor(self, data):
         obs, act, adv, logp_old = data['obs'], data['act'], data['adv'], data['logp']
         
@@ -218,20 +282,48 @@ class HierarchicalPPOAgent:
         max_ret = float('-INF')
         ep_ret = 0
         ep_len = 0
+        subep_len = 0
+        ext_rew = 0
 
         self.model.train()
-        obs, _ = env.reset()
+        obs, info = env.reset()
+        FINAL_GOAL = info['goal']
 
         for epoch in tqdm(range(self.max_epoch), desc='epoch'):
             # Data collection
             for step in tqdm(range(self.max_step), desc='step'):
-                act, logp, val = self.model(torch.as_tensor(obs, dtype=torch.float32))
+                # 새로운 subgoal로 출발해야할때: High-level policy 쿼리하여 subgoal, action mask 샘플링
+                if subep_len == 0:
+                    obs_t = torch.as_tensor(obs, dtype=torch.float32)
+                    goal_t = torch.as_tensor(FINAL_GOAL, dtype=torch.float32)
+                    self.meta_model.reset_hidden_state()
+                    subgoal, act_mask, subgoal_logp, act_mask_logp, hidden, meta_val = self.meta_model(obs_t, goal_t)
+
+                    a_mask = np.ones(self.act_dim)
+                    sg_mask = np.ones_like(subgoal)
+                    if act_mask == 0:
+                        a_mask[3:] = 0
+                        sg_mask[3:] = 0
                 
-                next_obs, rew, term, trunc, _ = env.step(act)
+                # Low-level policy로 action 샘플링
+                subgoal_t = torch.as_tensor(subgoal, dtype=torch.float32)
+                act, logp, val = self.model(obs_t, subgoal_t)
+                
+                next_obs, rew, term, trunc, info = env.step(act * a_mask)
+                ext_rew += rew
                 ep_ret += rew
                 ep_len += 1
+                subep_len += 1
                 
-                self.buf.store(obs, act, rew, val, logp)
+                # 현재 subgoal 달성 또는 시간 초과 시
+                dist = np.linalg.norm(next_obs - subgoal)
+                if dist < 0.05 or subep_len >= 50:
+                    self.meta_buf.store(obs, subgoal, ext_rew, meta_val, subgoal_logp)
+                    subep_len = 0
+                    ext_rew = 0
+
+                in_rew = np.linalg.norm((obs - subgoal) * sg_mask) - np.linalg.norm((next_obs - subgoal) * sg_mask)
+                self.buf.store(obs, act, in_rew, val, logp)
                 obs = next_obs
                 
                 episode_ended = (term | trunc)
@@ -243,6 +335,7 @@ class HierarchicalPPOAgent:
                     else:
                         val = 0
                     self.buf.finish_path(val)
+                    self.meta_buf.finish_path(meta_val)
                     
                     if episode_ended:
                         self.logger.add(EpRet=ep_ret)
