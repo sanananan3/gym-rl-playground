@@ -110,7 +110,8 @@ class DoorOpenEnv(MujocoEnv, utils.EzPickle):
         is_collided = self._process_collision()
         pen_collision = -1 if is_collided else 0
         
-        success = dist < 0.1
+        # 성공 판정: 두 그리퍼가 서로 닿지 않으면서 그리퍼 안의 터치센서 활성화
+        success = np.any(self.data.sensordata) & ~ np.all(self.data.qpos[10:11] < 0.01)
         self.success_duration = self.success_duration + 1 if success else 0
 
         rew = success * 10 + rew_dist + rew_angle - pen_qvel * 0.001 - pen_collision * 10
