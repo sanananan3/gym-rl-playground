@@ -7,15 +7,16 @@ import wandb
 import gymnasium as gym
 import numpy as np
 import torch
-
+from algorithms.skill_based.hrl import HierarchicalPPOAgent
 from algorithms import *
 from mjc_env import *
-from .util import Logger
+from experiments.util import Logger
 
 cur_dir = Path(os.path.dirname(__file__))
 
 AGENT = {
-    'ppo': PPOAgent
+    'ppo': PPOAgent,
+    'hrl' : HierarchicalPPOAgent
 }
 
 ENV = {
@@ -24,6 +25,7 @@ ENV = {
 }
 
 def main(args):
+
     seed = args.seed
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -32,6 +34,7 @@ def main(args):
         env = ENV[args.env](render_mode="rgb_array")
     else:
         env = gym.make(args.env, continuous=True, render_mode="rgb_array")
+        
     state, info = env.reset(seed=seed)
 
     args.train.obs_dim = env.observation_space.shape[0]
@@ -54,8 +57,8 @@ def main(args):
     env.close()
     
 if __name__ == "__main__":
-    config_name = sys.argv[1]
-    conf = OmegaConf.load(cur_dir / "config" / f"{config_name}.yaml")
-    conf.merge_with_cli()
+    cfg_name = sys.argv[1]
+    cfg = OmegaConf.load(cur_dir / "config" / f"{cfg_name}.yaml")
+    cfg.merge_with_cli()
     
-    main(conf)
+    main(cfg)
