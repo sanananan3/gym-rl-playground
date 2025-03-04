@@ -10,13 +10,15 @@ from scipy.spatial.transform import Rotation as R
 from mjc_env.door.util import rotate_quaternion, get_quaternion_difference
 
 """
-강화학습의 출력이 End Effector의 pose의 변화량인 Inverse Dynamics 환경
+강화학습의 출력 (action) 이 End Effector의 pose의 변화량 (=ee를 움직일 방향을 예측하는 방식)인 Inverse Dynamics 환경 (high-level policy)
+End-Effector의 waypoint를 학습하는 환경 
 """
+
 GEOM = 5
 
 cur_dir = Path(os.path.dirname(__file__))
 
-class DoorOpenEnv(MujocoEnv, utils.EzPickle):
+class MetaDoorOpenEnv(MujocoEnv, utils.EzPickle):
     metadata = {
         "render_modes": ["human", "rgb_array", "depth_array"],
         "render_fps": 100,
@@ -56,9 +58,9 @@ class DoorOpenEnv(MujocoEnv, utils.EzPickle):
         """
         a: desired pose of the end effector
         """
-        self.data.mocap_pos[0] += a[:3]
-        self.data.mocap_quat[0] = a[3:]
-        mujoco.mj_step(self.model, self.data, self.frame_skip)
+        self.data.mocap_pos[0] += a[:3] # end-effector's position change (x, y, z)
+        self.data.mocap_quat[0] = a[3:] # end-effector's rotation change (qw, qx, qy, qz)
+        mujoco.mj_step(self.model, self.data, self.frame_skip) # mujoco simulation update 
         self.step_number += 1
 
         obs = self._get_obs()

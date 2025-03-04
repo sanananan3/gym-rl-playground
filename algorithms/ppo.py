@@ -91,7 +91,7 @@ class Buffer:
         self.size = size
         self.ptr = 0
         self.path_start_idx = 0
-        # gae 계산을 위한 파라미터
+        # GAE(Generalized Advantage Estimation) 계산을 위한 파라미터
         self.gamma = gamma
         self.lam = lam
         

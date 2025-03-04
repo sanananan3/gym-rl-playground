@@ -7,6 +7,9 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 import mujoco
 
+"""
+각 관절의 토크 제어를 직접 학습하는 환경 (low-level policy)
+"""
 
 GEOM = 5
 
