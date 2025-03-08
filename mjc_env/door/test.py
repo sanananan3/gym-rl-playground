@@ -5,19 +5,19 @@ from scipy.spatial.transform import Rotation as R
 import sys 
 from pathlib import Path 
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from mjc_env.door.door_open_env_v1 import MetaDoorOpenEnv
 from mjc_env.door.door_open_env_v0 import DoorOpenEnv
 from mjc_env.door.util import rotate_quaternion, interpolate_quaternion
 
-# env = MetaDoorOpenEnv(render_mode="human")
-env = DoorOpenEnv(render_mode="human")
+env = MetaDoorOpenEnv(render_mode="human")
 obs, _ = env.reset()
     
 done = False
+
 while not done:
+    
     # 현재 위치와 목표 위치 사이의 거리 계산
     desired_pos_act = env.data.body('latch_axis').xpos - env.data.body('hand').xpos
     desired_pos_act[1] -= 0.05

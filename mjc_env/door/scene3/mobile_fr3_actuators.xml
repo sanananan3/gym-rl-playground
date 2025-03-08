@@ -25,7 +25,9 @@
     <motor ctrllimited="true" ctrlrange="-12.0 12.0" joint="joint6" name="actuator6"/>
     <motor ctrllimited="true" ctrlrange="-12.0 12.0" joint="joint7" name="actuator7"/>
 
-    <motor ctrllimited="true" ctrlrange="-255.0 255.0" tendon="split" name="split"/>
+    <!--Franka Gripper-->
+    <motor ctrllimited="true" ctrlrange="-255.0 255.0" tendon="split" name="split"/> 
+  
   </actuator>
 
  </mujocoinclude>

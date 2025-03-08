@@ -64,6 +64,7 @@ class MetaDoorOpenEnv(MujocoEnv, utils.EzPickle):
         self.step_number += 1
 
         obs = self._get_obs()
+        
         rew, term = self._get_rew_done(obs)
         trunc = self.step_number >= self.episode_len
         
@@ -83,6 +84,8 @@ class MetaDoorOpenEnv(MujocoEnv, utils.EzPickle):
         return self._get_obs()
 
     def _get_obs(self):
+
+        print("[INFO] observation data : ", self.data)
         current_ee_pos = self.data.body("hand").xpos
         current_ee_quat = R.from_matrix(self.data.body("hand").xmat.reshape(3, 3)).as_quat()
         
@@ -98,6 +101,15 @@ class MetaDoorOpenEnv(MujocoEnv, utils.EzPickle):
                             target_quat         # (4,)                            
                         ])
         return obs
+    
+    def convert_mjc_obs(obs):
+        """ convert mjc observation (flat array) tp iGibson-style dictionary """
+
+        obs_dict = {
+            "sensor" : obs[:3].reshape(1, -1), # end-effector position 
+            "auxiliary_sensor": obs[3:7].reshape(1, -1),
+
+        }
     
     def _get_rew_done(self, obs):
         # EE와 목표 지점 사이의 거리

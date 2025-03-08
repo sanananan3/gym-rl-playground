@@ -35,7 +35,7 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
 
         MujocoEnv.__init__(
             self, 
-            os.path.abspath(cur_dir / "scene2" / "mobile_fr3.xml"), 
+            os.path.abspath(cur_dir / "scene3" / "mobile_fr3.xml"), 
             10, 
             observation_space=observation_space, 
             **kwargs

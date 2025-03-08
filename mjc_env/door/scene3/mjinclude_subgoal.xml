@@ -1,0 +1,14 @@
+<mujocoinclude>
+
+<body name = 'subgoal_base_ee' pos = "0 0 0">
+
+    <!-- subgoal of base-->
+    <geom type = 'cylinder' size = '0.035 1.8' rgba = '1 1 0 0.6' />
+            
+    <!-- subgoal of end-effector -->
+    <geom type = 'sphere' size = '0.04' rgba = '0 0 0 1' pos ='0 0 1' />
+
+</body>
+
+
+</mujocoinclude>
