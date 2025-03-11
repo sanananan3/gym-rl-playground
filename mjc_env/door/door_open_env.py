@@ -4,18 +4,20 @@ from pathlib import Path
 import numpy as np
 from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
-from gymnasium.spaces import Box
+from gymnasium.spaces import Box, Dict
 import mujoco
 from scipy.spatial.transform import Rotation as R
 from mjc_env.door.util import rotate_quaternion, get_quaternion_difference
+from collections import OrderedDict
 
 """
 policy가 학습되는 최종 환경 (goal space와 동일)
 """
 
-GEOM = 5
+GEOM = 5 # geom id is 5
 
 cur_dir = Path(os.path.dirname(__file__))
+
 
 
 class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
@@ -25,12 +27,16 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         "render_fps": 100,
     }
 
-    def __init__(self, episode_len=500, **kwargs):
+    def __init__(self, episode_len=5000, **kwargs):
         
         utils.EzPickle.__init__(self, **kwargs)
 
-        observation_space = Box(low=-np.inf, high=np.inf, shape=(14,), dtype=np.float32)
-        self.idv_action_space = Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float32) # end effector pose 
+        observation_space = Dict({
+            "sensor": Box(low=-np.inf, high=np.inf, shape=(3,),dtype=np.float32),
+            "auxiliary_sensor": Box(low=-np.inf, high=np.inf, shape=(51, ), dtype=np.float32)
+        })
+
+        self.idv_action_space = Box(low=-1.0, high=1.0, shape=(7,), dtype=np.float32) # end effector pose => action space 
                                                                                             # (x, y, z, qw, qx, qy, qz)
 
         MujocoEnv.__init__(
@@ -40,97 +46,320 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
             observation_space=observation_space, 
             **kwargs
         )
-        self.step_number = 0
-        self.episode_len = episode_len
+
+
+        # self.step_number = 0
+
+        # self.episode_len = episode_len
         # 충돌 판정에서 제외할 geom id: door_handle, finger 관련된 ids
         self.excluded_geom_ids = self._find_geom_ids()
-        # Franka Reach Pose 반영
+         # Franka Reach Pose 반영
         self.init_qpos = self.data.qpos.ravel().copy()
-        # self.init_qpos[3:10] += np.array([0.3295, -0.0929, -0.3062, -2.4366, 1.4139, 2.7500, 0.6700])
+        self.init_qpos[3:10] += np.array([0.3295, -0.0929, -0.3062, -2.4366, 1.4139, 2.7500, 0.6700])
         self.init_qpos[3:10] += np.array([0, -0.7854, 0, -2.3562, 0, 1.5708, 0.7854])
-        
-        self.success_duration = 0
+
+        self.target_pos = self.data.body("target").xpos
+
+        # self.success_duration = 0
         print("Initialized DoorOpenEnv")
-        
+
+        self.stage = 0
+        self.prev_stage = self.stage
+
+        self.stage_get_to_door_handle = 0 # going to door handle 
+        self.stage_open_door = 1 # opening the door with grasping the handle 
+        self.stage_get_to_door_handle_after_open = 2 # going to target position after opening the door 
+
+        self.door_handle_dist_thres =  0.1
+        self.cid = None 
+        self.door_angle = 1.8
+
+
+        # termination condition 
+
+        self.dist_tol = 0.3
+        self.max_step = 1000
+
+        # reward 
+
+        self.reward_type = 'dense'
+        self.success_reward = 50.0
+        self.slack_reward = -0.01
+        self.death_z_thresh = 0.1
+
+        # reward weight 
+
+        self.potential_reward_weight = 2.0
+
+        self.electricity_reward_weight = -0.001
+        self.stall_torque_reward_weight = 0.0
+        self.collision_reward_weight = -0.01
+
+        # discount factor
+        self.discount_factor = 0.99
+
     def _set_action_space(self):
         self.action_space = self.idv_action_space
         return self.action_space
 
-    def step(self, a):
+    def step(self, action):
         """
-        a: desired pose of the end effector
+        MuJoCo step function
         """
-        self.data.mocap_pos[0] += a[:3] # end-effector's position change (x, y, z)
-        self.data.mocap_quat[0] = a[3:] # end-effector's rotation change (qw, qx, qy, qz)
+
+        # 1. stage_get_to_door_handle 
+        dist = np.linalg.norm(self.data.body("latch").xpos - self.data.body("hand").xpos)
+
+        self.prev_stage = self.stage 
+
+        if self.stage == self.stage_get_to_door_handle and dist < self.door_handle_dist_thres:
+            self.stage = self.stage_open_door
+            print("[STAGE] Open Door")
+
+        # 2. stage_open_door 
+        door_angle = self.data.qpos[self.model.joint("hinge").qposadr]
+
+        # self.door_angle = 1.8 
+        if self.stage == self.stage_open_door and door_angle > self.door_angle:
+            self.stage = self.stage_get_to_door_handle_after_open
+            print("[STAGE] Get to Door Handle After Open")
+
+        # 3. If the door is illegally open, then reset the door angle 
+
+        if door_angle < -0.002: 
+            self.data.qpos[self.model.joint("hinge").qposadr] = 0.0  # reset
+
+        # 4. apply action
+        self.data.mocap_pos[0] += action[:3] # end-effector's position change (x, y, z)
+        self.data.mocap_quat[0] = action[3:] # end-effector's rotation change (qw, qx, qy, qz)
+
+        # 5. run simulation 
         mujoco.mj_step(self.model, self.data, self.frame_skip) # mujoco simulation update 
         self.step_number += 1
 
-        obs = self._get_obs()
-        rew, term = self._get_rew_done(obs)
-        trunc = self.step_number >= self.episode_len
-        
-        return obs, rew, term, trunc, {}
+        # 6. get state 
+        state = self._get_state()
+
+        collision_links = self._process_collision()
+
+        # 7. get reward 
+        info = {}
+        reward, info = self._get_reward(collision_links, action, info)
+
+        # 8. get termination 
+        done, info = self._get_termination(collision_links, info)
+
+        truncated = self.step_number >= self.max_step
+
+        if done:
+            info["last_observation"]= state
+            state = self.reset()
+
+        return state, reward, done, truncated, info
+    
+
+
     
     def reset_model(self):
+        
+        self.stage = 0
+        self.prev_state = self.stage 
+
+        self.initial_potential = self.get_potential()
+        self.potential = self.initial_potential
+
+        self.current_step =0 
+        self.collision_step = 0
+        self.energy_cost = 0.0
+
         self.step_number = 0
         
+
         qpos = self.init_qpos + self.np_random.uniform(
             size=self.model.nq, low=-0.01, high=0.01
         )
         qvel = self.init_qvel + self.np_random.uniform(
             size=self.model.nv, low=-0.01, high=0.01
         )
+
         self.set_state(qpos, qvel)
         
-        return self._get_obs()
+        return self._get_state()
 
-    def _get_obs(self):
-        current_ee_pos = self.data.body("hand").xpos
-        current_ee_quat = R.from_matrix(self.data.body("hand").xmat.reshape(3, 3)).as_quat()
-        
-        target_pos = self.data.body("latch_axis").xpos
-        target_pos[1] -= 0.05                                           # 손잡이 잡는 위치 조정
-        target_quat = R.from_matrix(self.data.body("latch_axis").xmat.reshape(3, 3)).as_quat()
-        target_quat = rotate_quaternion(target_quat, [0, 1, 0], 180)    # 손잡이 잡는 z 방향 조정
-        
-        obs = np.concatenate([
-                            current_ee_pos,     # (3,)
-                            current_ee_quat,    # (4,)
-                            target_pos,         # (3,)
-                            target_quat         # (4,)                            
-                        ])
-        return obs
-    
-    def _get_rew_done(self, obs):
-        # EE와 목표 지점 사이의 거리
-        dist = np.linalg.norm(obs[:3] - obs[7:10])
-        rew_dist = (1 / (1 + dist))
-        # EE와 목표 방향 사이의 각도
-        angle = get_quaternion_difference(obs[3:7], obs[10:])
-        rew_angle = (1 / (1 + angle))
-        # 관절 속도 패널티
-        pen_qvel = -abs(self.data.qvel[3:10]).sum()
-        # 충돌 패널티
-        is_collided = self._process_collision()
-        pen_collision = -1 if is_collided else 0
-        
-        # 성공 판정: 두 그리퍼가 서로 닿지 않으면서 그리퍼 안의 터치센서 활성화
-        success = np.any(self.data.sensordata) & ~ np.all(self.data.qpos[10:11] < 0.01)
-        self.success_duration = self.success_duration + 1 if success else 0
 
-        rew = success * 10 + rew_dist + rew_angle - pen_qvel * 0.001 - pen_collision * 10
-        done = (self.success_duration > 20)
+    def _get_state(self):
         
-        return rew, done
+        state = OrderedDict()
+
+
+        # 1. sensor 
+
+        current_ee_pos = self.data.body("hand").xpos # arm_x, arm_y, arm_z (world)
+        state["sensor"] = np.array(np.concatenate([current_ee_pos]))
+
+        # 2. auxilary sensor 
+
+        base_pos = self.data.body("base").xpos # x, y, z
+        base_vel = self.data.qvel[:3] # vel_x, vel_y, vel_z
+
+        base_rot_mat = self.data.body('base').xmat.reshape(3,3)
+        base_euler = R.from_matrix(base_rot_mat).as_euler("xyz") 
+        roll, pitch, yaw = base_euler 
+
+        ee_pos = self.data.body("hand").xpos 
+        ee_pos_local =  np.array(ee_pos - base_pos) # from world to local 
+
+        arm_joints = np.array([self.data.qpos[self.model.joint(f"joint{i+1}").qposadr] for i in range(7) ]) # 2D (3,1)
+        arm_joints = arm_joints.squeeze() # 1D 
+
+        arm_joints_vel = np.array([self.data.qvel[self.model.jnt_dofadr[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"joint{i+1}")]] for i in range(7)])
+        base_x_vel = self.data.qvel[self.model.joint("base_x_slide_joint").dofadr]
+        base_y_vel = self.data.qvel[self.model.joint("base_y_slide_joint").dofadr]
+        base_z_vel = self.data.qvel[self.model.joint("base_z_hinge_joint").dofadr]
+
+        wheel1_state = np.array([base_x_vel, base_y_vel, base_z_vel]) # 2D (3,1)
+        wheel2_state = np.array([base_x_vel, base_y_vel, base_z_vel]) # 2D (3,1)
+        wheel1_state = wheel1_state.squeeze() # 1D
+        wheel2_state = wheel2_state.squeeze() # 1D
+        door_angle = self.data.qpos[self.model.joint("hinge").qposadr]  # 이미 float 값일 가능성이 높음
+        door_angle = np.array(door_angle, dtype=np.float32).flatten()  # (1,)로 변환
+        door_cos = np.array([np.cos(door_angle)], dtype=np.float32).flatten()  # (1,)
+        door_sin = np.array([np.sin(door_angle)], dtype=np.float32).flatten()  # (1,)
+
+        has_door_handle_in_hand = np.array([1 if self._check_grasping("door_handle") else 0])
+
+        target_pos = self.data.body("target").xpos # previous, latch_axis 
+        door_pos_local = self.data.body("door").xpos - base_pos 
+
+        target_pos_local = target_pos - base_pos
+
+        has_collision = np.array([1 if self._process_collision() else 0])
+
+        state["auxiliary_sensor"] = np.array(np.concatenate([
+            base_pos, 
+            ee_pos_local,
+            base_vel,
+            [roll,pitch],
+            wheel1_state,
+            wheel2_state,
+            arm_joints,
+            arm_joints_vel,
+            self.data.qvel[3:6],
+            [yaw, np.cos(yaw), np.sin(yaw)],
+            door_angle, door_cos, door_sin, has_door_handle_in_hand,
+            target_pos, 
+            door_pos_local,
+            target_pos_local,
+            has_collision
+        ]))
+        
+        return state
     
+
+
+
+    def get_potential(self):
+
+        def l2_distance(a,b):
+            return np.sqrt(np.sum((a-b)**2))
+        
+        door_angle = self.data.qpos[self.model.joint("hinge").qposadr]
+        door_handle_pos = self.data.body("latch").xpos
+        ee_pos = self.data.body("hand").xpos
+
+        if self.stage == self.stage_get_to_door_handle:
+            potential = l2_distance(door_handle_pos, ee_pos)
+
+        elif self.stage == self.stage_open_door:
+            potential = -door_angle 
+
+        elif self.stage == self.stage_get_to_door_handle_after_open:
+            potential = l2_distance(self.target_pos, ee_pos)
+
+        return potential 
+    
+
+    def _get_reward(self, collision_links=[], action=None, info={}):
+
+        reward = 0.0
+
+        def l2_distance(a,b):
+            return np.sqrt(np.sum((a-b)**2))
+        
+        # 1. potential reward 
+
+        if self.stage != self.prev_stage: 
+            # advance to the next stage 
+            self.potential = self.get_potential()
+
+        else: 
+            new_potential = self.get_potential()
+            potential_reward = self.potential - new_potential 
+            reward += potential_reward * self.potential_reward_weight
+            self.potential = new_potential
+
+        # 2. electricity reward 
+
+        base_moving = np.any(np.abs(action[:2]) >= 0.01)
+        arm_moving = np.any(np.abs(action[2:]) >= 0.01)
+        electricity_reward = float(base_moving) + float(arm_moving)
+
+        self.energy_cost += electricity_reward
+        reward = electricity_reward * self.electricity_reward_weight
+
+        # 3. collision penalty
+        collision_reward = float(collision_links)
+        self.collision_step += int(collision_reward)
+        reward += collision_reward * self.collision_reward_weight
+        info["collision_reward"] = collision_reward * self.collision_reward_weight
+
+        # goal reached 
+
+        if l2_distance(self.target_pos, self.data.body("hand").xpos) < self.dist_tol:
+            reward += self.success_reward
+
+        return reward, info 
+        
+
+    def _get_termination(self, collision_links = [], info= {}):
+
+        self.current_step += 1
+        done = False 
+
+        def l2_distance (a,b):
+            return np.sqrt(np.sum((a-b)**2))
+        
+        if l2_distance(self.target_pos, self.data.body("hand").xpos) < self.dist_tol:
+            print("GOAL")
+            done = True 
+            info["success"] = True
+
+        elif self.data.qpos[self.model.joint("base_z_hinge_joint").qposadr] > self.death_z_thresh:
+            print("DEATH")
+            done = True 
+            info["success"] = False 
+        elif self.current_step >= self.max_step:
+            done = True 
+            info["success"] = False
+            
+        if done:
+            info['episode_length'] = self.current_step
+            info['collision_step'] = self.collision_step
+            info['energy_cost'] = self.energy_cost
+            info['stage'] = self.stage 
+
+        return done, info
+            
+        
     def _process_collision(self):
         # 충돌 판정
         for contact in self.data.contact:
             if contact.geom1 and contact.geom2 and (contact.geom1 not in self.excluded_geom_ids) and (contact.geom2 not in self.excluded_geom_ids):
                 geom1_name = mujoco.mj_id2name(self.model, GEOM, contact.geom1)
                 geom2_name = mujoco.mj_id2name(self.model, GEOM, contact.geom2)
-                # print(f"Collision between {geom1_name} and {geom2_name} detected!")
+                
                 return True
+            
         return False
             
         
@@ -146,3 +375,12 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
                 geom_ids.append(geom_id)
                 
         return geom_ids
+    
+    def _check_grasping(self, object_name):
+        for contact in self.data.contact:
+            geom1 = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, contact.geom1)
+            geom2 = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, contact.geom2)
+            if geom1 == "hand" and geom2 == object_name:
+                return True 
+            
+            return False

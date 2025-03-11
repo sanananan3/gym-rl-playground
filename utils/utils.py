@@ -26,14 +26,18 @@ def update_lr(optimizer, initial_lr, update, num_updates, use_linear_lr_decay, f
 
 
 def batch_obs(observations):
+
     batch = defaultdict(list)
 
     for obs in observations:
         for sensor in obs:
-            batch[sensor].append(obs[sensor])
+
+                batch[sensor].append(obs[sensor])
 
     for sensor in batch:
-        batch[sensor] = torch.tensor(np.array(batch[sensor]), dtype=torch.float)
+        
+        batch[sensor] = torch.tensor(np.array(batch[sensor]), dtype = torch.float) # convert list to tensor 
+
     return batch
 
 

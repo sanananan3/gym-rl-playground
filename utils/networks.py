@@ -3,6 +3,11 @@ import torch.nn as nn
 import numpy as np
 
 
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.reshape(x.size(0), -1)
+
+
 class AddBias(nn.Module):
     def __init__(self, bias):
         super(AddBias, self).__init__()
@@ -79,6 +84,7 @@ class Net(nn.Module):
         self.cnn = self._init_perception_model(observation_space)
 
         self._rnn_input_size = 0
+
         if not self.is_blind:
             self._rnn_input_size += single_branch_size
         if self._n_additional_rnn_input != 0:
@@ -193,7 +199,7 @@ class Net(nn.Module):
                 nn.init.orthogonal_(param)
             elif "bias" in name:
                 nn.init.constant_(param, 0)
-
+        
         nn.init.orthogonal_(self.critic_linear.weight, gain=1)
         nn.init.constant_(self.critic_linear.bias, val=0)
 

@@ -3,8 +3,8 @@ def add_env_args(parser):
     group.add_argument(
         "--env-type",
         required=True,
-        help="env type: [gibson|interactive_gibson|toy]",
-        choices=["gibson", "interactive_gibson", "toy"]
+        help="env type: [gibson|interactive_mjc|toy]",
+        choices=["gibson", "interactive_mjc", "toy"]
     )
     group.add_argument(
         "--config-file",
@@ -144,18 +144,18 @@ def add_hrl_args(parser):
 def add_common_args(parser):
     group = parser.add_argument_group("common")
     # gpu id related
-    group.add_argument(
-        "--sim-gpu-id",
-        type=str,
-        required=True,
-        help="a comma-delimited list of gpu id on which scenes are loaded, e.g. 3,4,5",
-    )
-    group.add_argument(
-        "--pth-gpu-id",
-        type=str,
-        required=True,
-        help="a comma-delimited list of gpu ids on which pytorch runs, e.g. 0,1,2",
-    )
+    # group.add_argument(
+    #     "--sim-gpu-id",
+    #     type=str,
+    #     required=True,
+    #     help="a comma-delimited list of gpu id on which scenes are loaded, e.g. 3,4,5",
+    # )
+    # group.add_argument(
+    #     "--pth-gpu-id",
+    #     type=str,
+    #     required=True,
+    #     help="a comma-delimited list of gpu ids on which pytorch runs, e.g. 0,1,2",
+    # )
 
     # training related
     group.add_argument(

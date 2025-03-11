@@ -128,14 +128,17 @@ class DiagGaussianNet(nn.Module):
                  min_stddev=0.0,
                  stddev_transform=torch.nn.functional.softplus
                  ):
+        
         super().__init__()
         self.fc_mean = nn.Linear(num_inputs, num_outputs)
+
         self.action_space_mean = torch.nn.Parameter(
             torch.tensor((action_space.low + action_space.high) / 2.0, dtype=torch.float), requires_grad=False
         )
         self.action_space_magnitude = torch.nn.Parameter(
             torch.tensor((action_space.high - action_space.low) / 2.0, dtype=torch.float), requires_grad=False
         )
+        
         self.squash_mean = squash_mean
         self.squash_distribution = squash_distribution
 
