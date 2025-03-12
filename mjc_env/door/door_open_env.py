@@ -31,6 +31,8 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         
         utils.EzPickle.__init__(self, **kwargs)
 
+
+
         observation_space = Dict({
             "sensor": Box(low=-np.inf, high=np.inf, shape=(3,),dtype=np.float32),
             "auxiliary_sensor": Box(low=-np.inf, high=np.inf, shape=(51, ), dtype=np.float32)
@@ -47,19 +49,18 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
             **kwargs
         )
 
-
-        # self.step_number = 0
+        print("[INFO] self.dt : ", self.dt)
 
         # self.episode_len = episode_len
         # 충돌 판정에서 제외할 geom id: door_handle, finger 관련된 ids
         self.excluded_geom_ids = self._find_geom_ids()
+
+
          # Franka Reach Pose 반영
         self.init_qpos = self.data.qpos.ravel().copy()
-        self.init_qpos[3:10] += np.array([0.3295, -0.0929, -0.3062, -2.4366, 1.4139, 2.7500, 0.6700])
-        self.init_qpos[3:10] += np.array([0, -0.7854, 0, -2.3562, 0, 1.5708, 0.7854])
 
-        self.target_pos = self.data.body("target").xpos
-
+        self.init_qpos[6:13] += np.array([0, -0.7854, 0, -2.3562, 0, 1.5708, 0.7854]) # arm_joint position 
+      
         # self.success_duration = 0
         print("Initialized DoorOpenEnv")
 
@@ -70,14 +71,14 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         self.stage_open_door = 1 # opening the door with grasping the handle 
         self.stage_get_to_door_handle_after_open = 2 # going to target position after opening the door 
 
-        self.door_handle_dist_thres =  0.1
+        self.door_handle_dist_thres =  0.05
         self.cid = None 
         self.door_angle = 1.8
 
 
         # termination condition 
 
-        self.dist_tol = 0.3
+        self.dist_tol = 0.05
         self.max_step = 1000
 
         # reward 
@@ -85,7 +86,7 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         self.reward_type = 'dense'
         self.success_reward = 50.0
         self.slack_reward = -0.01
-        self.death_z_thresh = 0.1
+        self.death_z_thresh = 0.5
 
         # reward weight 
 
@@ -107,6 +108,10 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         MuJoCo step function
         """
 
+        action =np.squeeze(action)
+
+        print("action: ", action)
+
         # 1. stage_get_to_door_handle 
         dist = np.linalg.norm(self.data.body("latch").xpos - self.data.body("hand").xpos)
 
@@ -117,7 +122,7 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
             print("[STAGE] Open Door")
 
         # 2. stage_open_door 
-        door_angle = self.data.qpos[self.model.joint("hinge").qposadr]
+        door_angle = self.data.qpos[self.model.joint("hinge").qposadr] # real simulation's door angle 
 
         # self.door_angle = 1.8 
         if self.stage == self.stage_open_door and door_angle > self.door_angle:
@@ -135,10 +140,10 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
 
         # 5. run simulation 
         mujoco.mj_step(self.model, self.data, self.frame_skip) # mujoco simulation update 
-        self.step_number += 1
 
         # 6. get state 
         state = self._get_state()
+
 
         collision_links = self._process_collision()
 
@@ -149,13 +154,11 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         # 8. get termination 
         done, info = self._get_termination(collision_links, info)
 
-        truncated = self.step_number >= self.max_step
-
         if done:
             info["last_observation"]= state
             state = self.reset()
 
-        return state, reward, done, truncated, info
+        return state, reward, done, info
     
 
 
@@ -168,21 +171,18 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         self.initial_potential = self.get_potential()
         self.potential = self.initial_potential
 
-        self.current_step =0 
+        self.current_step = 0 
         self.collision_step = 0
         self.energy_cost = 0.0
-
-        self.step_number = 0
         
 
-        qpos = self.init_qpos + self.np_random.uniform(
-            size=self.model.nq, low=-0.01, high=0.01
-        )
-        qvel = self.init_qvel + self.np_random.uniform(
-            size=self.model.nv, low=-0.01, high=0.01
-        )
+        qpos = self.init_qpos 
+        qvel = self.init_qvel 
+        
 
         self.set_state(qpos, qvel)
+
+        self.target_pos = self.data.body("target").xpos
         
         return self._get_state()
 
@@ -190,7 +190,6 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
     def _get_state(self):
         
         state = OrderedDict()
-
 
         # 1. sensor 
 
@@ -201,6 +200,10 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
 
         base_pos = self.data.body("base").xpos # x, y, z
         base_vel = self.data.qvel[:3] # vel_x, vel_y, vel_z
+
+        # for i in range(self.model.nv):
+        #     joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, i)
+        #     print(f"qvel[{i}] corresponds to joint: {joint_name}")
 
         base_rot_mat = self.data.body('base').xmat.reshape(3,3)
         base_euler = R.from_matrix(base_rot_mat).as_euler("xyz") 
@@ -213,12 +216,14 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         arm_joints = arm_joints.squeeze() # 1D 
 
         arm_joints_vel = np.array([self.data.qvel[self.model.jnt_dofadr[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"joint{i+1}")]] for i in range(7)])
+        
         base_x_vel = self.data.qvel[self.model.joint("base_x_slide_joint").dofadr]
         base_y_vel = self.data.qvel[self.model.joint("base_y_slide_joint").dofadr]
-        base_z_vel = self.data.qvel[self.model.joint("base_z_hinge_joint").dofadr]
+        base_z_vel = self.data.qvel[self.model.joint("base_z_slide_joint").dofadr]
 
         wheel1_state = np.array([base_x_vel, base_y_vel, base_z_vel]) # 2D (3,1)
         wheel2_state = np.array([base_x_vel, base_y_vel, base_z_vel]) # 2D (3,1)
+
         wheel1_state = wheel1_state.squeeze() # 1D
         wheel2_state = wheel2_state.squeeze() # 1D
         door_angle = self.data.qpos[self.model.joint("hinge").qposadr]  # 이미 float 값일 가능성이 높음
@@ -232,6 +237,7 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         door_pos_local = self.data.body("door").xpos - base_pos 
 
         target_pos_local = target_pos - base_pos
+
 
         has_collision = np.array([1 if self._process_collision() else 0])
 
@@ -305,7 +311,7 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         electricity_reward = float(base_moving) + float(arm_moving)
 
         self.energy_cost += electricity_reward
-        reward = electricity_reward * self.electricity_reward_weight
+        reward += electricity_reward * self.electricity_reward_weight
 
         # 3. collision penalty
         collision_reward = float(collision_links)
@@ -313,7 +319,7 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         reward += collision_reward * self.collision_reward_weight
         info["collision_reward"] = collision_reward * self.collision_reward_weight
 
-        # goal reached 
+        # 4. goal reached 
 
         if l2_distance(self.target_pos, self.data.body("hand").xpos) < self.dist_tol:
             reward += self.success_reward
@@ -338,9 +344,11 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
             print("DEATH")
             done = True 
             info["success"] = False 
+
         elif self.current_step >= self.max_step:
             done = True 
             info["success"] = False
+
             
         if done:
             info['episode_length'] = self.current_step
@@ -351,13 +359,14 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         return done, info
             
         
+
     def _process_collision(self):
         # 충돌 판정
         for contact in self.data.contact:
             if contact.geom1 and contact.geom2 and (contact.geom1 not in self.excluded_geom_ids) and (contact.geom2 not in self.excluded_geom_ids):
                 geom1_name = mujoco.mj_id2name(self.model, GEOM, contact.geom1)
                 geom2_name = mujoco.mj_id2name(self.model, GEOM, contact.geom2)
-                
+
                 return True
             
         return False
@@ -377,10 +386,46 @@ class FrankaDoorEnv(MujocoEnv, utils.EzPickle):
         return geom_ids
     
     def _check_grasping(self, object_name):
+
         for contact in self.data.contact:
             geom1 = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, contact.geom1)
             geom2 = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, contact.geom2)
             if geom1 == "hand" and geom2 == object_name:
                 return True 
             
-            return False
+        return False
+        
+
+    
+    def set_subgoal(self, ideal_next_state): 
+
+        def set_position(self, pos):
+
+            body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "subgoal")
+
+            if body_id == -1 :
+                raise ValueError("No such body : subgoal")
+            
+            self.model.body_pos[body_id] = np.array(pos)
+            mujoco.mj_forward(self.model, self.data)
+            
+        # obs_avg = (self.observation_normalizer['sensor'][1] + self.observation_normalizer['sensor'][0]) / 2.0
+        # obs_mag = (self.observation_nomalizer['sensor'][1] - self.observation_normalizer['sensor'][0]) / 2.0
+        # ideal_next_state = (ideal_next_state * obs_mag) + obs_avg
+
+        set_position(self, ideal_next_state)
+
+
+
+    def set_subgoal_type(self, only_base = True):
+        
+        geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "subgoal_ee")
+
+        if only_base :
+            self.model.geom_rgba[geom_id] = np.array([0, 0, 0, 0.0])
+
+        else : 
+            self.model.geom_rgba[geom_id] = np.array([0, 0, 0, 1.0])
+
+
+        mujoco.mj_forward(self.model, self.data) # maybe annotated later ...  ? 

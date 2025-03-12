@@ -1,0 +1,66 @@
+2025-03-12 09:38:37,589 Dict('auxiliary_sensor': Box(-inf, inf, (51,), float32), 'sensor': Box(-inf, inf, (3,), float32))
+2025-03-12 09:38:37,589 Box(-1.0, 1.0, (7,), float32)
+2025-03-12 09:38:37,931 loaded checkpoint : ckpt/hrl_reward_dense_pos_fixed_sgm_arm_world_irs_30.0_sgr_0.0_lr_1e-4_meta_lr_1e-5_fr_lr_0_death_30.0_init_std_0.6_0.6_0.1_failed_pnt_0.0_nsteps_1024_ext_col_0.0_6x6_from_scr_exp_run_0/ckpt/ckpt.1190.pth
+2025-03-12 09:38:37,932 loaded checkpoint : ckpt/hrl_reward_dense_pos_fixed_sgm_arm_world_irs_30.0_sgr_0.0_lr_1e-4_meta_lr_1e-5_fr_lr_0_death_30.0_init_std_0.6_0.6_0.1_failed_pnt_0.0_nsteps_1024_ext_col_0.0_6x6_from_scr_exp_run_0/ckpt/meta_ckpt.1190.pth
+2025-03-12 09:38:37,932 agent number of parameters: 1204260
+2025-03-12 09:38:37,932 meta agent number of parameters: 1199890
+2025-03-12 09:38:48,545 update: 1191	env_steps: 1220608	env_steps_per_sec: 117159.317	env-time: 6.229s	pth-time: 4.188s
+2025-03-12 09:38:48,545 update: 1191	env_steps: 1220608	value_loss: 0.080	action_loss: 0.008	dist_entropy: 0.317
+2025-03-12 09:38:48,545 update: 1191	env_steps: 1220608	meta_value_loss: 0.000	subgoal_loss: -0.008	meta_dist_entropy: -0.373
+2025-03-12 09:38:48,546 No episodes finish in current window
+2025-03-12 09:38:48,546 No subgoals finish in current window
+2025-03-12 09:38:59,236 update: 1192	env_steps: 1221632	env_steps_per_sec: 57871.180	env-time: 12.668s	pth-time: 8.438s
+2025-03-12 09:38:59,236 update: 1192	env_steps: 1221632	value_loss: 0.089	action_loss: 0.004	dist_entropy: 0.317
+2025-03-12 09:38:59,237 update: 1192	env_steps: 1221632	meta_value_loss: 0.000	subgoal_loss: -0.015	meta_dist_entropy: -0.373
+2025-03-12 09:38:59,237 average window size 4	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:38:59,238 window_size: 2	subgoal_reward: 21.634	subgoal_success_rate: 0.000	subgoal_length: 31.969
+2025-03-12 09:39:08,731 update: 1193	env_steps: 1222656	env_steps_per_sec: 39951.268	env-time: 18.113s	pth-time: 12.484s
+2025-03-12 09:39:08,731 update: 1193	env_steps: 1222656	value_loss: 0.077	action_loss: 0.002	dist_entropy: 0.317
+2025-03-12 09:39:08,731 update: 1193	env_steps: 1222656	meta_value_loss: 0.000	subgoal_loss: -0.002	meta_dist_entropy: -0.373
+2025-03-12 09:39:08,731 average window size 6	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:39:08,732 window_size: 3	subgoal_reward: 21.687	subgoal_success_rate: 0.000	subgoal_length: 32.109
+2025-03-12 09:39:19,246 update: 1194	env_steps: 1223680	env_steps_per_sec: 29759.194	env-time: 24.329s	pth-time: 16.781s
+2025-03-12 09:39:19,246 update: 1194	env_steps: 1223680	value_loss: 0.193	action_loss: -0.006	dist_entropy: 0.317
+2025-03-12 09:39:19,246 update: 1194	env_steps: 1223680	meta_value_loss: 0.000	subgoal_loss: 0.001	meta_dist_entropy: -0.373
+2025-03-12 09:39:19,247 average window size 8	reward: -0.033	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:39:19,247 window_size: 4	subgoal_reward: 21.628	subgoal_success_rate: 0.000	subgoal_length: 31.660
+2025-03-12 09:39:29,494 update: 1195	env_steps: 1224704	env_steps_per_sec: 23842.356	env-time: 30.317s	pth-time: 21.038s
+2025-03-12 09:39:29,494 update: 1195	env_steps: 1224704	value_loss: 0.062	action_loss: -0.008	dist_entropy: 0.317
+2025-03-12 09:39:29,494 update: 1195	env_steps: 1224704	meta_value_loss: 0.000	subgoal_loss: -0.001	meta_dist_entropy: -0.374
+2025-03-12 09:39:29,495 average window size 10	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:39:29,495 window_size: 5	subgoal_reward: 21.623	subgoal_success_rate: 0.000	subgoal_length: 31.562
+2025-03-12 09:39:40,181 update: 1196	env_steps: 1225728	env_steps_per_sec: 19752.664	env-time: 36.664s	pth-time: 25.375s
+2025-03-12 09:39:40,181 update: 1196	env_steps: 1225728	value_loss: 0.086	action_loss: -0.010	dist_entropy: 0.317
+2025-03-12 09:39:40,181 update: 1196	env_steps: 1225728	meta_value_loss: 0.000	subgoal_loss: -0.007	meta_dist_entropy: -0.374
+2025-03-12 09:39:40,182 average window size 12	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:39:40,182 window_size: 6	subgoal_reward: 21.622	subgoal_success_rate: 0.000	subgoal_length: 31.556
+2025-03-12 09:39:49,768 update: 1197	env_steps: 1226752	env_steps_per_sec: 17123.571	env-time: 42.212s	pth-time: 29.411s
+2025-03-12 09:39:49,768 update: 1197	env_steps: 1226752	value_loss: 0.086	action_loss: -0.008	dist_entropy: 0.317
+2025-03-12 09:39:49,768 update: 1197	env_steps: 1226752	meta_value_loss: 0.000	subgoal_loss: -0.002	meta_dist_entropy: -0.374
+2025-03-12 09:39:49,769 average window size 14	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:39:49,770 window_size: 7	subgoal_reward: 21.616	subgoal_success_rate: 0.000	subgoal_length: 31.456
+2025-03-12 09:39:59,661 update: 1198	env_steps: 1227776	env_steps_per_sec: 15058.489	env-time: 47.966s	pth-time: 33.546s
+2025-03-12 09:39:59,661 update: 1198	env_steps: 1227776	value_loss: 0.066	action_loss: -0.007	dist_entropy: 0.317
+2025-03-12 09:39:59,661 update: 1198	env_steps: 1227776	meta_value_loss: 0.000	subgoal_loss: -0.005	meta_dist_entropy: -0.375
+2025-03-12 09:39:59,661 average window size 16	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:39:59,662 window_size: 8	subgoal_reward: 21.611	subgoal_success_rate: 0.000	subgoal_length: 31.384
+2025-03-12 09:40:10,278 update: 1199	env_steps: 1228800	env_steps_per_sec: 13334.643	env-time: 54.276s	pth-time: 37.850s
+2025-03-12 09:40:10,279 update: 1199	env_steps: 1228800	value_loss: 0.068	action_loss: -0.005	dist_entropy: 0.317
+2025-03-12 09:40:10,279 update: 1199	env_steps: 1228800	meta_value_loss: 0.000	subgoal_loss: -0.008	meta_dist_entropy: -0.375
+2025-03-12 09:40:10,279 average window size 18	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:40:10,280 window_size: 9	subgoal_reward: 21.620	subgoal_success_rate: 0.000	subgoal_length: 31.429
+2025-03-12 09:40:20,692 update: 1200	env_steps: 1229824	env_steps_per_sec: 11990.684	env-time: 60.473s	pth-time: 42.064s
+2025-03-12 09:40:20,692 update: 1200	env_steps: 1229824	value_loss: 0.072	action_loss: -0.007	dist_entropy: 0.317
+2025-03-12 09:40:20,692 update: 1200	env_steps: 1229824	meta_value_loss: 0.000	subgoal_loss: -0.001	meta_dist_entropy: -0.375
+2025-03-12 09:40:20,692 average window size 20	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:40:20,693 window_size: 10	subgoal_reward: 21.618	subgoal_success_rate: 0.000	subgoal_length: 31.405
+2025-03-12 09:40:30,956 update: 1201	env_steps: 1230848	env_steps_per_sec: 10908.973	env-time: 66.503s	pth-time: 46.290s
+2025-03-12 09:40:30,956 update: 1201	env_steps: 1230848	value_loss: 0.183	action_loss: -0.008	dist_entropy: 0.317
+2025-03-12 09:40:30,956 update: 1201	env_steps: 1230848	meta_value_loss: 0.000	subgoal_loss: 0.002	meta_dist_entropy: -0.375
+2025-03-12 09:40:30,957 average window size 22	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:40:30,958 window_size: 11	subgoal_reward: 21.615	subgoal_success_rate: 0.000	subgoal_length: 31.379
+2025-03-12 09:40:40,747 update: 1202	env_steps: 1231872	env_steps_per_sec: 10046.285	env-time: 72.243s	pth-time: 50.338s
+2025-03-12 09:40:40,747 update: 1202	env_steps: 1231872	value_loss: 0.062	action_loss: -0.010	dist_entropy: 0.317
+2025-03-12 09:40:40,747 update: 1202	env_steps: 1231872	meta_value_loss: 0.000	subgoal_loss: -0.001	meta_dist_entropy: -0.376
+2025-03-12 09:40:40,747 average window size 24	reward: -0.032	success_rate: 0.000	episode length: 0.000	collision_step: 0.000	total_energy_cost: 0.000	avg_energy_cost: 0.000	stage_open_door: 0.000	stage_to_target: 0.000
+2025-03-12 09:40:40,748 window_size: 12	subgoal_reward: 21.614	subgoal_success_rate: 0.000	subgoal_length: 31.396

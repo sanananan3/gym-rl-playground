@@ -12,10 +12,17 @@
   </equality>
 
   <actuator>
-    <!-- BASE -->
-    <velocity ctrllimited="true" ctrlrange="-2.5 2.5" joint="base_x_slide_joint" kv="20000" name="base_x_slide_joint" user="1" gear="1 0 0 0 0 0"/>
-    <velocity ctrllimited="true" ctrlrange="-2.5 2.5" joint="base_y_slide_joint" kv="20000" name="base_y_slide_joint" user="1" gear="1 0 0 0 0 0"/>
-    <velocity ctrllimited="true" ctrlrange="-2.5 2.5" joint="base_z_hinge_joint" kv="20000" name="base_z_hinge_joint" user="1" gear="1 0 0 0 0 0"/>
+    <!-- BASE 6 DOF -->
+    
+    
+    <velocity ctrllimited="true" ctrlrange="-2 2" joint="base_x_slide_joint" kv="20000" name="base_x_slide_joint" user="1" gear="1 0 0 0 0 0"/>
+    <velocity ctrllimited="true" ctrlrange="-2 2" joint="base_y_slide_joint" kv="20000" name="base_y_slide_joint" user="1" gear="1 0 0 0 0 0"/>
+    <velocity ctrllimited="true" ctrlrange="-2 2" joint="base_z_slide_joint" kv="20000" name="base_z_slide_joint" user="1" gear="1 0 0 0 0 0"/>
+
+    <velocity ctrllimited="true" ctrlrange="-2 2" joint="base_x_hinge_joint" kv="20000" name="base_x_hinge_joint" user="1" gear="1 0 0 0 0 0"/> 
+    <velocity ctrllimited="true" ctrlrange="-2 2" joint="base_y_hinge_joint" kv="20000" name="base_y_hinge_joint" user="1" gear="1 0 0 0 0 0"/>
+    <velocity ctrllimited="true" ctrlrange="-2 2" joint="base_z_hinge_joint" kv="20000" name="base_z_hinge_joint" user="1" gear="1 0 0 0 0 0"/>
+
     <!-- Franka Arm -->
     <motor ctrllimited="true" ctrlrange="-87.0 87.0" joint="joint1" name="actuator1"/>
     <motor ctrllimited="true" ctrlrange="-87.0 87.0" joint="joint2" name="actuator2"/>

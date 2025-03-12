@@ -50,5 +50,5 @@ python -u train_hrl_mjc.py \
    --env-type "interactive_mjc" \
    --config-file "jr_interactive_nav.yaml" \
    --arena "complex_hl_ll" \
-   --num-eval-episodes 10 \
+   --num-eval-episodes 100 \
    --eval-only

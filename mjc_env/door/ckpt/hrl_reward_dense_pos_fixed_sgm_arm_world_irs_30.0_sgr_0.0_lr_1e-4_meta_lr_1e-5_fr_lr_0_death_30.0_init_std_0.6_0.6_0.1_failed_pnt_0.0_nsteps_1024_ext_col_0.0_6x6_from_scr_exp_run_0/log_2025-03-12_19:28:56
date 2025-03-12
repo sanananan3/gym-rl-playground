@@ -1,0 +1,11 @@
+2025-03-12 19:28:51,273 Dict('auxiliary_sensor': Box(-inf, inf, (51,), float32), 'sensor': Box(-inf, inf, (3,), float32))
+2025-03-12 19:28:51,273 Box(-1.0, 1.0, (7,), float32)
+2025-03-12 19:28:51,622 loaded checkpoint : ckpt/hrl_reward_dense_pos_fixed_sgm_arm_world_irs_30.0_sgr_0.0_lr_1e-4_meta_lr_1e-5_fr_lr_0_death_30.0_init_std_0.6_0.6_0.1_failed_pnt_0.0_nsteps_1024_ext_col_0.0_6x6_from_scr_exp_run_0/ckpt/ckpt.10.pth
+2025-03-12 19:28:51,624 loaded checkpoint : ckpt/hrl_reward_dense_pos_fixed_sgm_arm_world_irs_30.0_sgr_0.0_lr_1e-4_meta_lr_1e-5_fr_lr_0_death_30.0_init_std_0.6_0.6_0.1_failed_pnt_0.0_nsteps_1024_ext_col_0.0_6x6_from_scr_exp_run_0/ckpt/meta_ckpt.10.pth
+2025-03-12 19:28:51,624 agent number of parameters: 1204260
+2025-03-12 19:28:51,624 meta agent number of parameters: 1199890
+2025-03-12 19:28:56,398 update: 11	env_steps: 1024	env_steps_per_sec: 214.525	env-time: 1.217s	pth-time: 3.555s
+2025-03-12 19:28:56,398 update: 11	env_steps: 1024	value_loss: 54.254	action_loss: -0.003	dist_entropy: 0.321
+2025-03-12 19:28:56,398 update: 11	env_steps: 1024	meta_value_loss: 7.603	subgoal_loss: -0.019	meta_dist_entropy: 0.280
+2025-03-12 19:28:56,399 No episodes finish in current window
+2025-03-12 19:28:56,399 No subgoals finish in current window

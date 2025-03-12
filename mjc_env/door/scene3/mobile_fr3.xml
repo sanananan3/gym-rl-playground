@@ -16,6 +16,7 @@
     
 
         <!-- Mobile Robot -->
+
         <body name ='fr3' pos ='-1 -2 0'>
             <include file = 'mjinclude_mobile_fr3.xml' />
         </body>
