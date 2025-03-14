@@ -327,7 +327,6 @@ class AsyncRolloutStorage:
     def recurrent_generator(self, advantages, num_mini_batch):
         num_processes = self.rewards.size(1)
 
-        print("num_processes : ", num_processes )
         assert num_processes >= num_mini_batch, (
             "PPO requires the number of processes ({}) "
             "to be greater than or equal to the number of "

@@ -32,10 +32,9 @@ def batch_obs(observations):
     for obs in observations:
         for sensor in obs:
 
-                batch[sensor].append(obs[sensor])
+            batch[sensor].append(obs[sensor])
 
     for sensor in batch:
-        
         batch[sensor] = torch.tensor(np.array(batch[sensor]), dtype = torch.float) # convert list to tensor 
 
     return batch

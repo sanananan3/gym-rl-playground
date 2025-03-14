@@ -302,7 +302,9 @@ class Net(nn.Module):
                 additional_rnn_input.append(observations["subgoal_mask"])
             if self._n_action_mask > 0:
                 additional_rnn_input.append(observations["action_mask"])
+
             x = torch.cat(additional_rnn_input, dim=1)
+        
             x = self.feature_linear(x)
 
         if not self.is_blind:
